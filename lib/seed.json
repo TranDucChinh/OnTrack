@@ -1,0 +1,74 @@
+[
+  {
+    "id": "demo-1",
+    "name": "Plan the week",
+    "deadline": "2026-11-16",
+    "done": false,
+    "pending": false,
+    "priority": "normal",
+    "notes": "",
+    "updatedAt": null,
+    "createdAt": null,
+    "completedAt": null
+  },
+  {
+    "id": "demo-2",
+    "name": "Review project notes",
+    "deadline": "2026-11-17",
+    "done": true,
+    "pending": false,
+    "priority": "normal",
+    "notes": "",
+    "updatedAt": null,
+    "createdAt": null,
+    "completedAt": null
+  },
+  {
+    "id": "demo-3",
+    "name": "Prepare a progress update",
+    "deadline": "2026-11-19",
+    "done": false,
+    "pending": false,
+    "priority": "high",
+    "notes": "",
+    "updatedAt": null,
+    "createdAt": null,
+    "completedAt": null
+  },
+  {
+    "id": "demo-4",
+    "name": "Read a chapter",
+    "deadline": "2026-11-20",
+    "done": false,
+    "pending": false,
+    "priority": "normal",
+    "notes": "",
+    "updatedAt": null,
+    "createdAt": null,
+    "completedAt": null
+  },
+  {
+    "id": "demo-5",
+    "name": "Organise reference files",
+    "deadline": "2026-11-21",
+    "done": true,
+    "pending": false,
+    "priority": "normal",
+    "notes": "",
+    "updatedAt": null,
+    "createdAt": null,
+    "completedAt": null
+  },
+  {
+    "id": "demo-6",
+    "name": "Finish the weekly checklist",
+    "deadline": "2026-11-22",
+    "done": false,
+    "pending": false,
+    "priority": "normal",
+    "notes": "",
+    "updatedAt": null,
+    "createdAt": null,
+    "completedAt": null
+  }
+]

@@ -1,0 +1,86 @@
+# OnTrack — kích hoạt Google Sheet và Web Push
+
+OnTrack dùng trên Android và Windows qua cùng một địa chỉ HTTPS. Không cần thuê server. Bản đã xuất bản đang là bản dùng thử từ file Excel: các thao tác lưu trên trình duyệt, chưa ghi về Google Sheet và chưa gửi thông báo. Dữ liệu thử của hai thiết bị không tự đồng bộ hoặc nhập lại vào Sheet.
+
+## 1. Chuẩn bị Sheet và Apps Script
+
+1. Mở Google Sheet hiện tại: https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit
+2. Nên tạo một bản sao dự phòng trước lần thiết lập đầu.
+3. Chọn Extensions (Tiện ích mở rộng) → Apps Script. Dán nội dung `Code.gs` từ gói này vào dự án. Nếu dự án đã có mã khác, thêm file riêng và kiểm tra không trùng các tên hàm của OnTrack.
+4. Trong Project Settings, đặt múi giờ thành Asia/Ho_Chi_Minh. Sheet cũng nên đặt múi giờ GMT+07:00 trong File → Settings.
+5. Chạy hàm `setupOnTrack`, tự xem và cấp quyền cần thiết cho tài khoản sở hữu Sheet. Hàm giữ nguyên A:D, thêm E:L: task_id, created_at, completed_at, updated_at, priority, notes, deadline_has_time, reminder_state. Nếu E:L đã có tiêu đề khác, hàm dừng để bảo toàn dữ liệu.
+6. Trong Project Settings → Script Properties, tìm `ONTRACK_API_TOKEN` do hàm tạo. Giữ riêng mã này, không đăng công khai và không gửi trong chat.
+7. Chọn Deploy → New deployment → Web app: Execute as **Me**, Who has access **Anyone**. Việc này công khai địa chỉ tiếp nhận yêu cầu, KHÔNG công khai Sheet: mã chỉ xử lý thao tác khi token khớp. Nếu tổ chức chặn kiểu triển khai này, cần thay đổi phương án xác thực, không bỏ bước kiểm tra token.
+8. Sao chép URL kết thúc bằng `/exec`. Khi sửa mã Apps Script sau này, cập nhật deployment sang phiên bản mới; URL giữ nguyên.
+
+## 2. Tạo ứng dụng Web Push trong OneSignal
+
+1. Đăng ký hoặc đăng nhập tại https://onesignal.com bằng tài khoản của bạn. Có thể bắt đầu với gói Free trong hạn mức hiện hành.
+2. Tạo app tên **OnTrack**, thêm nền tảng Web Push, chọn **Custom Code**.
+3. Site Name: OnTrack. Site URL: địa chỉ thực tế của Site được xuất bản, ví dụ `https://your-ontrack.example.com`.
+4. Tải biểu tượng OnTrack từ file `icon-192.png` trong gói này lên phần Default Icon của OneSignal (hoặc dùng URL ảnh đã tải lên OneSignal). Không dùng URL ảnh từ Site riêng tư làm nguồn cho dịch vụ bên ngoài. Tắt tự bật prompt hoặc thông báo chào mừng nếu đã bật trong dashboard; app tự hiển thị nút đăng ký.
+5. Trong Keys & IDs, lấy **App ID** và **App API Key / REST API Key** của chính app đó. Không dùng Organization API Key. App ID không phải bí mật; API Key là bí mật.
+6. App đã có `OneSignalSDKWorker.js` và manifest. Không cần dán thêm SDK thứ hai.
+
+## 3. Điền cấu hình bảo mật
+
+Trong **Apps Script → Project Settings → Script Properties**, thêm:
+
+| Property | Giá trị |
+|---|---|
+| `ONESIGNAL_APP_ID` | App ID ở OneSignal |
+| `ONESIGNAL_API_KEY` | App API Key; chỉ đặt tại đây |
+| `ONTRACK_APP_URL` | Địa chỉ HTTPS gốc của Site, không có đường dẫn con |
+
+Trong **biến môi trường phía server của Site**, đặt (qua công cụ quản lý Sites; không sửa mã client hoặc hosting.json):
+
+| Biến | Giá trị |
+|---|---|
+| `ONTRACK_SCRIPT_URL` | URL Apps Script `/exec` |
+| `ONTRACK_API_TOKEN` | Token khớp với Script Properties |
+| `ONESIGNAL_APP_ID` | Cùng App ID nói trên |
+
+Các giá trị này cần được cấu hình trong tài khoản của bạn. Nếu chưa có giao diện để nhập biến môi trường, tiếp tục bước này cùng trợ lý qua công cụ Sites; không gửi API Key vào cuộc trò chuyện. Sau khi đổi biến môi trường, triển khai lại phiên bản Site nếu công cụ quản lý yêu cầu. Giữ Site ở chế độ riêng tư.
+
+## 4. Bật lịch 5 phút và đăng ký thiết bị
+
+1. Chạy hàm `installReminders` trong Apps Script. Hàm cài trigger `checkDeadlines` mỗi 5 phút, không tạo trùng trigger của OnTrack.
+2. Mở OnTrack → Cài đặt. Kiểm tra trạng thái **Google Sheet: Đã kết nối** và lịch kiểm tra đã cài.
+3. Trên Android, mở URL bằng Chrome ở chế độ thường, đăng nhập cùng tài khoản có quyền xem Site → Cài đặt → Bật trên thiết bị này → Cho phép thông báo. Có thể thêm app vào màn hình chính.
+4. Làm tương tự trên Windows bằng Chrome hoặc Edge. Cài app từ menu trình duyệt nếu có tùy chọn; dùng bằng tab trình duyệt vẫn được.
+5. Trên từng thiết bị, nhấn **Gửi thông báo thử** và kiểm tra thông báo thật. Phản hồi API chỉ cho biết dịch vụ chấp nhận gửi, chưa chứng minh thiết bị đã hiển thị.
+6. Kiểm tra quyền thông báo của Chrome/Edge trong Android/Windows. Chế độ Không làm phiền, chặn trình duyệt, tắt hẳn tiến trình, tiết kiệm pin và mạng có thể trì hoãn hoặc ngăn thông báo.
+
+## 5. Kiểm tra toàn bộ luồng trước khi sử dụng
+
+- Tạo task thử trong app, kiểm tra task xuất hiện trong Sheet và trên thiết bị còn lại.
+- Sửa tên/giờ hạn trong Sheet, đồng bộ lại app để kiểm tra chiều ngược lại.
+- Tạo task có giờ hạn trong 10–15 phút tới, nhận nhắc, đánh dấu hoàn thành, kiểm tra không có nhắc mới khi đến hạn.
+- Để task khác đi qua ít nhất hai chu kỳ kiểm tra và xác nhận một mốc không gửi lặp. Xem Apps Script → Executions khi có lỗi.
+- Sửa cùng một task ở hai nơi: app phải báo xung đột khi lưu bản cũ, không ghi đè dữ liệu mới.
+- Sau khi tất cả đạt, mới xem nhắc tự động là đã hoạt động.
+
+## Quy tắc dữ liệu và nhắc việc
+
+- Múi giờ Việt Nam. Deadline chỉ có ngày được hiểu là 23:59. Có giờ thì dùng đúng giờ đã chọn.
+- Ba mốc: trước 24 giờ, trước 1 giờ, và khi đến hạn. Mỗi lượt kiểm tra chỉ chọn mốc mới nhất đã tới; không gửi bù cả ba mốc cùng lúc.
+- Task đã quá hạn trước lần kích hoạt lịch đầu tiên không bị gửi dồn. Bản này chưa nhắc quá hạn lặp lại mỗi ngày, chưa có nhắc lại sau hoặc giờ yên lặng.
+- Dùng lock để tránh lượt chạy chồng nhau; lưu khóa idempotency trước khi gọi OneSignal để hạn chế gửi trùng khi thử lại. Khi chưa có thiết bị hoặc dịch vụ không chấp nhận gửi, không ghi là đã gửi thành công.
+- Lịch 5 phút không phải cam kết độ trễ tối đa 5 phút. Apps Script, hạn mức, mạng và hệ điều hành đều có thể gây chậm. OneSignal và Apps Script áp dụng hạn mức riêng.
+- Việc nhập từ Excel có trạng thái Done nhưng không có thời điểm hoàn thành, nên không suy đoán thống kê đúng hạn của các việc cũ.
+- `Id` là STT theo công thức; `task_id` mới là mã cố định. Khi tự thêm dòng trong Sheet, chạy lại `setupOnTrack` để cấp mã cho task mới. Không sửa cột `task_id` hoặc `reminder_state` bằng tay.
+- Google Sheet vẫn là nguồn dữ liệu chính sau khi kết nối. Mất mạng sẽ báo lỗi; bản này chưa có hàng đợi ghi offline cho chế độ kết nối thật.
+- Site đang riêng tư. Thông báo có nội dung tên task được xử lý qua OneSignal; có thể hiện trên màn hình khóa theo cài đặt thiết bị.
+
+## Mã nguồn và kiểm thử
+
+Mã giao diện React/Vinext, endpoint phía server tại `lib/ontrack-api.ts`, worker tại `worker/index.ts`, xử lý Sheet và scheduler tại `setup/Code.gs`.
+
+Kiểm thử tự động: `node --test tests/core.test.mjs`; kiểm tra TypeScript: `node node_modules/typescript/bin/tsc --noEmit`. Build bằng helper Sites đã dùng để triển khai. Kiểm thử tự động chưa thay thế kiểm tra thật với tài khoản Google, OneSignal và hai thiết bị của bạn.
+
+Tài liệu chính thức:
+- https://developers.google.com/apps-script/reference/script/clock-trigger-builder
+- https://developers.google.com/apps-script/guides/services/quotas
+- https://documentation.onesignal.com/docs/web-sdk-setup
+- https://documentation.onesignal.com/docs/web-sdk-reference
+- https://documentation.onesignal.com/reference/push-notification
