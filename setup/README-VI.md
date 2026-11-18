@@ -1,5 +1,15 @@
 # OnTrack — kích hoạt Google Sheet và Web Push
 
+## Danh sách và thống kê hiện tại
+
+Trong tab Công việc, chọn Danh sách hoặc Lịch tháng. Lịch xếp task theo ngày deadline, gồm mọi trạng thái và dùng chung bộ tìm kiếm/lọc. Bấm vào task để xem/sửa; chọn ngày để xem đầy đủ các task hoặc thêm việc vào ngày đó. Có nút tháng trước/tháng sau và trở về tháng hiện tại. Task chưa có deadline được giữ trong Danh sách. Lịch chỉ hiển thị các task đã tồn tại, không tự vẽ các lần định kỳ chưa được tạo.
+
+Các ô tổng hợp đầu trang chỉ xuất hiện tại tab Công việc. Trong biểu đồ tuần, ngày hôm nay theo giờ Việt Nam có nền vàng và nhãn Hôm nay; màu trạng thái trong cột vẫn giữ nguyên.
+
+Danh sách hiển thị toàn bộ task ở mọi tuần, theo nhóm Quá hạn → Đang làm → Pending → Đã hoàn thành. Bộ lọc Đã hoàn thành cũng hiển thị toàn bộ lịch sử. Thẻ Tổng công việc trong tuần chỉ tính các task có deadline trong tuần đang xem (thứ Hai–Chủ nhật), gồm mọi trạng thái; không tính task chưa đặt deadline.
+
+Thống kê có biểu đồ cột chồng theo ngày, cơ cấu trạng thái, mức ưu tiên, so sánh với tuần trước, hạn trong 24 giờ, ưu tiên cao chưa xong, ngày nhiều deadline nhất và chất lượng hoàn thành (đúng hạn, trễ, thiếu ngày hoàn thành, trễ trung bình). So sánh tuần dùng deadline và trạng thái hiện tại, không phải ảnh chụp lịch sử. Chất lượng hoàn thành chỉ dùng các task đã ghi nhận thời điểm hoàn thành.
+
 ## Cập nhật bản 2: định kỳ, Pending và thống kê theo tuần
 
 - Công việc định kỳ có ba kiểu: mỗi N giờ/ngày tính từ deadline lần trước; theo các thứ trong tuần; theo ngày trong tháng. Lần đầu dùng deadline đã chọn. Khi một lần đến hạn, tạo lần kế tiếp dù lần trước chưa hoàn thành. Ngày 29–31 không có trong một tháng được chuyển về ngày cuối tháng, rồi trở lại ngày đã chọn trong tháng sau.
