@@ -2,11 +2,14 @@ import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
 import { ontrackApi } from "../lib/ontrack-api";
+import {handleAuth} from '../lib/google-auth.mjs';
 
 const worker = {
-  fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+  async fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+    const auth=await handleAuth(request,env,import.meta.env.DEV);
+    if(auth)return auth;
     if(new URL(request.url).pathname === '/api/ontrack') {
-      return ontrackApi(request, env as unknown as {ONTRACK_SCRIPT_URL?:string;ONTRACK_API_TOKEN?:string;ONESIGNAL_APP_ID?:string}, import.meta.env.DEV);
+      return ontrackApi(request, env, import.meta.env.DEV);
     }
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and

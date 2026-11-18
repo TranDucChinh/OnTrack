@@ -1,9 +1,12 @@
 import seed from './seed.json';
 import { validateTask } from './task-core.mjs';
-type RuntimeEnv = {ONTRACK_SCRIPT_URL?:string;ONTRACK_API_TOKEN?:string;ONESIGNAL_APP_ID?:string};
+import {getAuthState} from './google-auth.mjs';
+type RuntimeEnv = Record<string,any>;
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function ontrackApi(request:Request,env:RuntimeEnv,dev=false){
-  if(!dev&&!request.headers.get('oai-authenticated-user-id'))return json({error:'Bạn cần đăng nhập để sử dụng OnTrack.'},401);
+  const auth=await getAuthState(request,env,dev);
+  if(auth.mode==='setup')return json({error:'Đăng nhập Google chưa được cấu hình.'},503);
+  if(auth.mode==='google'&&!auth.user)return json({error:'Phiên đăng nhập đã hết hạn. Hãy đăng nhập Google lại.'},401);
   const live=Boolean(env.ONTRACK_SCRIPT_URL&&env.ONTRACK_API_TOKEN);
   if(!live&&(env.ONTRACK_SCRIPT_URL||env.ONTRACK_API_TOKEN))return json({error:'Cấu hình kết nối Sheet chưa đầy đủ. Cần cả địa chỉ Apps Script và mã kết nối.'},503);
   if(request.method==='GET'){
