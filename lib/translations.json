@@ -362,5 +362,14 @@
   "OnTrack cho Windows": "OnTrack for Windows",
   "Mở OnTrack từ shortcut trên Desktop hoặc Start Menu. Ứng dụng chỉ chạy trên máy này, không cần đăng nhập Google.": "Open OnTrack from your Desktop or Start menu shortcut. It runs on this computer only and does not require Google sign-in.",
   "Máy cần có mạng để đồng bộ Sheet. Khi tắt máy hoặc ngủ, việc kiểm tra deadline tạm dừng.": "Internet access is required for Sheet sync. Deadline checks pause when your computer is off or asleep.",
-  "Nhận nhắc deadline trên Windows, kể cả khi đóng cửa sổ app.": "Get deadline reminders on Windows, even after closing the app window."
+  "Nhận nhắc deadline trên Windows, kể cả khi đóng cửa sổ app.": "Get deadline reminders on Windows, even after closing the app window.",
+  "Windows cho phép OnTrack gửi thông báo.": "Windows allows OnTrack notifications.",
+  "Windows đã nhận thông báo thử. Nếu chưa thấy banner, kiểm tra Do not disturb và Show notification banners của OnTrack.": "Windows accepted the test notification. If no banner appears, check Do not disturb and Show notification banners for OnTrack.",
+  "Windows đang tắt thông báo. Bật Settings → System → Notifications → Notifications rồi thử lại.": "Windows notifications are off. Enable Settings → System → Notifications → Notifications, then try again.",
+  "Windows đang tắt thông báo của OnTrack. Bật OnTrack trong Settings → System → Notifications.": "OnTrack notifications are off in Windows. Enable OnTrack under Settings → System → Notifications.",
+  "Thông báo bị chặn bởi chính sách Windows. Liên hệ người quản lý máy.": "Notifications are blocked by Windows policy. Contact your system administrator.",
+  "Windows chưa nhận diện được OnTrack để gửi thông báo. Chạy lại trình cài OnTrack.": "Windows has not registered OnTrack for notifications. Run the OnTrack installer again.",
+  "Chưa kiểm tra được quyền thông báo Windows. Hãy thử lại.": "Could not check Windows notification permissions. Please try again.",
+  "Windows đã ẩn thông báo. Kiểm tra Do not disturb và Show notification banners của OnTrack.": "Windows hid the notification. Check Do not disturb and Show notification banners for OnTrack.",
+  "Windows chưa chấp nhận thông báo. Kiểm tra quyền thông báo của OnTrack.": "Windows did not accept the notification. Check notification permissions for OnTrack."
 }

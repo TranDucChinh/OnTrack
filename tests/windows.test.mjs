@@ -7,9 +7,22 @@ import {localAccessAllowed} from '../lib/local-access.mjs';
 import {ontrackApi} from '../lib/ontrack-api.mjs';
 import {allowLocalRequest,validateConnection,publicSettings,reminderCandidates,DESKTOP_ORIGIN} from '../scripts/windows/local-core.mjs';
 import {createStore} from '../scripts/windows/settings-store.mjs';
+import {notificationBlockMessage,checkNotificationResult} from '../scripts/windows/notifications.mjs';
 const localEnv={ONTRACK_AUTH_MODE:'windows-local',ONTRACK_LOCAL_ORIGIN:DESKTOP_ORIGIN};
 const scriptUrl='https://script.google.com/macros/s/TEST_ONLY_DEPLOYMENT/exec';
 const token='test-only-connection-token-12345';
+
+test('Notification diagnostics distinguish system and app blocks; hidden or failed toasts never report success',()=>{
+ assert.equal(notificationBlockMessage('Enabled'),'');
+ assert.match(notificationBlockMessage('DisabledForUser'),/Windows đang tắt/);
+ assert.match(notificationBlockMessage('DisabledForApplication'),/OnTrack/);
+ assert.match(notificationBlockMessage('DisabledByGroupPolicy'),/chính sách/);
+ assert.match(notificationBlockMessage('Unknown'),/Chưa kiểm tra/);
+ assert.throws(()=>checkNotificationResult({code:1}),/ẩn thông báo/);
+ for(const error of [{code:-1},{code:4294967295},{code:'ENOENT'},{killed:true}])assert.throws(()=>checkNotificationResult(error),/chưa chấp nhận/);
+ for(const code of [0,2,3,4,5])assert.deepEqual(checkNotificationResult({code}),{accepted:true});
+ assert.deepEqual(checkNotificationResult(null),{accepted:true});
+});
 
 test('Windows access is restricted to its exact loopback origin and never trusts LAN hosts or cross-site requests',()=>{
  assert.equal(localAccessAllowed(new Request(DESKTOP_ORIGIN+'/api/ontrack'),localEnv),true);

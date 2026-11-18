@@ -36,7 +36,8 @@ Nếu URL chuyển sang trang đăng nhập Google hoặc app báo không kết 
 - Trong Cài đặt có nút **Gửi thông báo thử**, công tắc nhắc deadline và công tắc **Chạy nền khi đăng nhập Windows**.
 - Đóng cửa sổ app không dừng phần chạy nền. Tắt máy, ngủ, mất mạng hoặc dừng tiến trình sẽ tạm ngừng kiểm tra. Không phải dịch vụ đám mây chạy khi máy đã tắt.
 - Nhắc trước một ngày, một giờ và khi đến hạn. Một lượt chỉ gửi mốc gần nhất; không gửi dồn các mốc cũ. Task Done hoặc Pending không được nhắc. Các deadline đã quá hạn trước khi bật tính năng không bị gửi dồn.
-- Thông báo được đánh dấu sau khi Windows chấp nhận gửi. Không làm phiền hoặc quyền thông báo bị chặn có thể khiến banner không hiển thị. Kiểm tra **Windows Settings → System → Notifications → OnTrack** nếu cần.
+- OnTrack kiểm tra quyền thông báo Windows trước khi gửi. Nếu Windows tắt thông báo toàn hệ thống hoặc tắt riêng OnTrack, Cài đặt sẽ hiện lý do; thông báo bị chặn không được đánh dấu là đã gửi.
+- Bật **Windows Settings → System → Notifications → Notifications**, bật riêng **OnTrack** và **Show notification banners**. Tắt **Do not disturb** nếu muốn hiện banner ngay. Windows nhận thông báo không đồng nghĩa banner chắc chắn xuất hiện; khi bị ẩn, kiểm tra trung tâm thông báo. Nút thử dùng thời gian hiển thị dài hơn để dễ quan sát.
 - Các lần đã gửi được lưu để hạn chế trùng sau khi khởi động lại. Lịch 5 phút không phải cam kết độ trễ tối đa 5 phút.
 
 ## Dữ liệu trên máy

@@ -8,7 +8,7 @@ import {Readable} from 'node:stream';
 import {ontrackApi} from '../../lib/ontrack-api.mjs';
 import {createStore} from './settings-store.mjs';
 import {DESKTOP_PORT,DESKTOP_ORIGIN,allowLocalRequest,validateConnection,publicSettings,reminderCandidates} from './local-core.mjs';
-import {showNotification} from './notifications.mjs';
+import {showNotification,getNotificationStatus} from './notifications.mjs';
 import {setStartup} from './shortcuts.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -55,7 +55,7 @@ async function desktopRoute(request,url){
  if(url.pathname==='/api/auth/session')return json({mode:'local',configured:true,user:null,desktop:{connected:Boolean(settings.scriptUrl&&settings.apiToken)}});
  if(url.pathname.startsWith('/auth/')||url.pathname==='/api/auth/logout')return json({error:'Bản Windows không cần đăng nhập.'},400);
  if(url.pathname==='/api/desktop/settings'){
-  if(request.method==='GET')return json(publicSettings(settings,status));
+  if(request.method==='GET')return json({...publicSettings(settings,status),notificationStatus:await getNotificationStatus()});
   if(request.method!=='POST')return json({error:'Phương thức không được hỗ trợ.'},405);
   const input=await request.json();const connection=validateConnection(input,settings);
   const candidate={...settings,...connection};await listState(candidate);
@@ -69,7 +69,7 @@ async function desktopRoute(request,url){
   await store.update(patch);return json({ok:true,...publicSettings(store.get(),status)});
  }
  if(url.pathname==='/api/desktop/test-notification'&&request.method==='POST'){
-  await showNotification({title:'OnTrack · Đã sẵn sàng',message:'Thông báo Windows đã sẵn sàng. OnTrack kiểm tra deadline mỗi 5 phút khi máy đang chạy.',icon,onClick:()=>openApp()});return json({ok:true});
+  await showNotification({title:'OnTrack · Đã sẵn sàng',message:'Thông báo Windows đã sẵn sàng. OnTrack kiểm tra deadline mỗi 5 phút khi máy đang chạy.',icon,duration:'long',onClick:()=>openApp()});return json({ok:true});
  }
  if(url.pathname==='/api/desktop/open'&&request.method==='POST'){openApp();return json({ok:true});}
  if(url.pathname==='/api/desktop/check-now'&&request.method==='POST'){await checkDeadlines();return json({ok:!status.lastCheckError,...publicSettings(store.get(),status)});}
