@@ -54,3 +54,8 @@ yarn-error.log*
 *.zip
 *.xlsx
 *.xls
+
+# Personal connection notes must never be published.
+/token.txt
+/tokens.txt
+/ontrack-connection*.json

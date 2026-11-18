@@ -14,7 +14,10 @@
     "db:generate": "drizzle-kit generate",
     "test": "node --test",
     "typecheck": "tsc --noEmit",
-    "deploy": "npm run build && wrangler deploy --config dist/server/wrangler.json"
+    "deploy": "npm run build && wrangler deploy --config dist/server/wrangler.json",
+    "windows:install": "npm run build && node scripts/windows/install.mjs",
+    "windows:start": "node scripts/windows/host.mjs --open",
+    "windows:uninstall": "node scripts/windows/install.mjs --uninstall"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -31,6 +34,7 @@
     "lucide-react": "^1.31.0",
     "next": "16.3.4",
     "next-themes": "^0.4.6",
+    "node-notifier": "10.0.1",
     "radix-ui": "^1.6.7",
     "react": "19.2.6",
     "react-day-picker": "^10.0.1",
