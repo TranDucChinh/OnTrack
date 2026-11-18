@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./theme.css";
+import {PreferencesProvider} from './preferences';
 
 export const metadata: Metadata = {
   title: "OnTrack — Stay on task. Stay on time.",
@@ -17,8 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body className="antialiased">{children}</body>
+    <html lang="vi" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{__html:"try{var p=JSON.parse(localStorage.getItem('ontrack-preferences-v1')||'{}');var d=document.documentElement;d.dataset.theme=p.theme==='dark'?'dark':'light';d.style.colorScheme=d.dataset.theme;d.lang=p.language==='en'?'en':'vi';}catch(e){}"}}/></head>
+      <body className="antialiased"><PreferencesProvider>{children}</PreferencesProvider></body>
     </html>
   );
 }

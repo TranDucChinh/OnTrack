@@ -105,3 +105,7 @@ Tài liệu chính thức:
 - https://documentation.onesignal.com/docs/web-sdk-setup
 - https://documentation.onesignal.com/docs/web-sdk-reference
 - https://documentation.onesignal.com/reference/push-notification
+
+## Giao diện và ngôn ngữ
+
+Vào **Cài đặt → Giao diện & ngôn ngữ** để bật/tắt chế độ tối và chọn **VI / EN**. Tùy chọn được lưu riêng trên từng trình duyệt, có hiệu lực ngay và được giữ sau khi tải lại trang. Chuyển ngôn ngữ chỉ đổi giao diện; tên task, ghi chú và deadline được giữ nguyên.
