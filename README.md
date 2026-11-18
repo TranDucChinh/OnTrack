@@ -2,6 +2,8 @@
 
 OnTrack is a personal task and deadline tracker for desktop and Android browsers. It combines a task list, recurring schedules, calendar views, weekly analytics, and a recent activity feed.
 
+**Windows first:** [Install the local Windows edition](setup/WINDOWS-VI.md). It opens from a Desktop/Start Menu shortcut, connects to a private Sheet, and sends native Windows reminders without Google sign-in or OneSignal. Android deployment will be handled separately.
+
 [Hướng dẫn kết nối Google Sheet và Web Push bằng tiếng Việt](setup/README-VI.md)
 
 [Thiết lập đăng nhập Google cho tài khoản cá nhân](setup/GOOGLE-AUTH-VI.md)
@@ -20,6 +22,10 @@ OnTrack is a personal task and deadline tracker for desktop and Android browsers
 
 ## Run locally
 
+For the installed Windows app, run `npm ci` and `npm run windows:install`, then open **OnTrack** from its shortcut. Enter the Apps Script URL and token directly in Settings. The local host binds only to loopback and keeps connection settings outside the repository. Closing the window leaves reminder checks running; the Startup option is controlled in the app. See the [Windows guide](setup/WINDOWS-VI.md) for setup, reminders, limits, and uninstall steps.
+
+The following commands run the web development edition:
+
 Requirements: Node.js **22.13 or newer**, npm, and Git.
 
 ```sh
@@ -27,7 +33,7 @@ npm ci
 npm run dev
 ```
 
-Open the loopback URL printed by the server, normally http://127.0.0.1:5173. With no Sheet or Google auth configuration, the local development server offers a synthetic demo. Demo tasks, activity, and preferences are saved in the current browser. Demo changes do not sync between devices or write to a Sheet. Live Sheet configuration always requires Google sign-in, including during development.
+Open the loopback URL printed by the server, normally http://127.0.0.1:5173. With no Sheet or Google auth configuration, the web development server offers a synthetic demo. Demo tasks, activity, and preferences are saved in the current browser. Demo changes do not sync between devices or write to a Sheet. Live Sheet configuration in the web edition requires Google sign-in; the installed Windows host uses its separate loopback-only access policy.
 
 For local OAuth, copy `.dev.vars.example` to the ignored `.dev.vars` file and configure it privately. See the [Google sign-in guide](setup/GOOGLE-AUTH-VI.md) for the exact callback URL and required secrets.
 
@@ -61,6 +67,7 @@ The five-minute Apps Script scheduler creates recurring tasks and checks deadlin
 | `setup/Code.gs` | Sheet storage, edit logging, scheduler, and OneSignal delivery |
 | `worker/index.ts` | Cloudflare Worker entry point |
 | `tests/` | Domain tests and Apps Script fixtures |
+| `scripts/windows/` | Windows installation, local host, settings storage, and native reminders |
 
 The app uses Vinext and a Cloudflare Worker. Authentication is handled by Google OAuth in the app, independently of ChatGPT/Sites user headers. Production requires a configured Google Web OAuth Client, a single approved email, a random session secret, and a canonical HTTPS origin. Login requests only `openid email profile`; the existing Apps Script connection handles Sheet access.
 
