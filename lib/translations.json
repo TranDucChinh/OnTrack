@@ -12,11 +12,8 @@
   "Bạn có thể chọn giờ cụ thể khi thêm hoặc sửa task.": "You can choose a specific time when adding or editing a task.",
   "Bạn cần làm gì?": "What do you need to do?",
   "Bạn cần đăng nhập để sử dụng OnTrack.": "Sign in to use OnTrack.",
-  "Bạn đang xem bản nhập từ Excel. Bản dùng thử lưu trên từng thiết bị; dữ liệu chưa được đồng bộ về Sheet gốc.": "You are viewing an Excel import. The demo saves on each device and does not sync to the original Sheet yet.",
   "Bạn đã có một danh sách thật gọn. Thêm việc mới khi sẵn sàng.": "Your list is clear. Add a new task when you are ready.",
   "Bản dùng thử không tự nhập thay đổi vào Sheet khi kết nối. Hãy dùng nó để trải nghiệm thao tác.": "Demo changes are not imported into your Sheet when you connect. Use the demo to explore the app.",
-  "Bản dùng thử từ Excel · Thay đổi chỉ lưu trên thiết bị này.": "Excel demo · Changes are saved on this device only.",
-  "Bản lưu thử trên thiết bị không hợp lệ. Đã nạp lại dữ liệu Excel.": "The local demo data is invalid. The Excel import has been reloaded.",
   "Bật trên thiết bị này": "Enable on this device",
   "Bỏ trống giờ hoặc ưu tiên: mặc định 23:59 và Vừa, theo giờ Việt Nam.": "If left blank, time defaults to 23:59 and priority to Medium. All times use Vietnam time.",
   "Cao": "High",
@@ -312,5 +309,8 @@
   "Bản thử": "Demo",
   "Xem thay đổi": "View changes",
   "Chỉ ghi thao tác làm thay đổi công việc. Không tính xem trang, đồng bộ hay đổi cài đặt giao diện.": "Only task changes are recorded. Page views, syncs and appearance settings are excluded.",
-  "Xem thông báo hoạt động": "View activity notifications"
+  "Xem thông báo hoạt động": "View activity notifications",
+  "Bản dùng thử · Thay đổi chỉ lưu trên thiết bị này.": "Demo · Changes are saved on this device only.",
+  "Bản lưu thử trên thiết bị không hợp lệ. Đã nạp lại dữ liệu mẫu.": "The local demo data is invalid. The sample data has been reloaded.",
+  "Bạn đang xem dữ liệu mẫu. Bản dùng thử lưu trên từng thiết bị; dữ liệu chưa được đồng bộ về Sheet gốc.": "You are viewing sample data. The demo saves on each device and does not sync to the original Sheet yet."
 }

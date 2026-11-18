@@ -1,3 +1,5 @@
+> Đây là hướng dẫn cho bản mã nguồn công khai. Repo chỉ chứa dữ liệu mẫu và placeholder. Bản đang chạy riêng của tác giả không bị thay đổi. Không có thông tin kết nối thật trong repo.
+
 # OnTrack — kích hoạt Google Sheet và Web Push
 
 ## Danh sách và thống kê hiện tại
@@ -21,11 +23,11 @@ Thống kê có biểu đồ cột chồng theo ngày, cơ cấu trạng thái, 
 
 Nếu đã cài bản trước: thay toàn bộ mã OnTrack cũ bằng `Code.gs` mới (file này đã chứa phần logic dùng chung), chạy lại `setupOnTrack` để thêm cột M:Q, rồi cập nhật deployment Apps Script sang phiên bản mới. Giữ token và URL `/exec` cũ. Có thể chạy `installTaskScheduler` để bật định kỳ trước khi thiết lập OneSignal; nếu đã dùng Web Push, chạy `installReminders`. Không dán trùng cả mã OnTrack cũ và mới trong một dự án.
 
-OnTrack dùng trên Android và Windows qua cùng một địa chỉ HTTPS. Không cần thuê server. Bản đã xuất bản đang là bản dùng thử từ file Excel: các thao tác lưu trên trình duyệt, chưa ghi về Google Sheet và chưa gửi thông báo. Dữ liệu thử của hai thiết bị không tự đồng bộ hoặc nhập lại vào Sheet.
+OnTrack dùng trên Android và Windows qua cùng một địa chỉ HTTPS. Không cần thuê server. Bản mã nguồn công khai dùng dữ liệu mẫu: các thao tác lưu trên trình duyệt, chưa ghi về Google Sheet và chưa gửi thông báo. Dữ liệu thử của hai thiết bị không tự đồng bộ hoặc nhập lại vào Sheet.
 
 ## 1. Chuẩn bị Sheet và Apps Script
 
-1. Mở Google Sheet hiện tại: https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit
+1. Chuẩn bị Google Sheet của bạn. Thay `YOUR_SPREADSHEET_ID` trong `setup/Code.gs` và đường dẫn mở Sheet trong `app/ontrack.tsx` bằng ID file của bạn. Sheet cần tab `Deadline` với A:D là `Id`, `Name`, `Date`, `Done`.
 2. Nên tạo một bản sao dự phòng trước lần thiết lập đầu.
 3. Chọn Extensions (Tiện ích mở rộng) → Apps Script. Dán nội dung `Code.gs` từ gói này vào dự án. Nếu dự án đã có mã khác, thêm file riêng và kiểm tra không trùng các tên hàm của OnTrack.
 4. Trong Project Settings, đặt múi giờ thành Asia/Ho_Chi_Minh. Sheet cũng nên đặt múi giờ GMT+07:00 trong File → Settings.
