@@ -32,6 +32,7 @@ async function remote(body:object,env:RuntimeEnv){
     if(!response.ok)return json({error:'Không kết nối được Apps Script. Kiểm tra triển khai và quyền truy cập.'},502);
     const result=await response.json() as any;
     if(!result.ok)return json({error:result.error||'Không thể cập nhật Sheet.'},result.code==='conflict'?409:502);
+    if(result.tasks&&result.schemaVersion!==2)return json({error:'Hãy cập nhật mã Apps Script OnTrack mới và chạy lại setupOnTrack để dùng Pending và công việc định kỳ.'},503);
     return json({...result,mode:'live',pushReady:Boolean(result.pushReady&&env.ONESIGNAL_APP_ID),pushAppId:env.ONESIGNAL_APP_ID||''});
   }catch{return json({error:'Kết nối Sheet bị gián đoạn. Dữ liệu chưa được xác nhận lưu; hãy đồng bộ lại trước khi thử.'},502);}
 }

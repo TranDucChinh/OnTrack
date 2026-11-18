@@ -1,5 +1,16 @@
 # OnTrack — kích hoạt Google Sheet và Web Push
 
+## Cập nhật bản 2: định kỳ, Pending và thống kê theo tuần
+
+- Công việc định kỳ có ba kiểu: mỗi N giờ/ngày tính từ deadline lần trước; theo các thứ trong tuần; theo ngày trong tháng. Lần đầu dùng deadline đã chọn. Khi một lần đến hạn, tạo lần kế tiếp dù lần trước chưa hoàn thành. Ngày 29–31 không có trong một tháng được chuyển về ngày cuối tháng, rồi trở lại ngày đã chọn trong tháng sau.
+- Mục Định kỳ quản lý các lịch gốc. Sửa/tắt lịch không thay đổi các lần đã tạo. Đổi deadline bắt đầu sẽ tính lại lịch từ deadline đó. Task con có thể sửa riêng hoặc mở lịch gốc.
+- Pending tạm dừng một task, giữ deadline, ngừng nhắc, không tính vào việc cần làm/quá hạn/biểu đồ. Pending không dừng lịch định kỳ. Chọn Không lặp ở lịch gốc để dừng tạo task mới.
+- Hoàn thành trong tuần = deadline từ thứ Hai đến Chủ nhật và đang Done, không dựa vào ngày bấm hoàn thành. Biểu đồ có tuần trước/tuần sau và Mon–Sun. Giờ mặc định 23:59, ưu tiên mặc định Vừa.
+- Bản thử lưu theo trình duyệt: sinh các kỳ mới khi mở/làm mới app (có làm mới mỗi 5 phút khi app hoạt động). Chạy nền khi đóng app cần kết nối Sheet và cài `installTaskScheduler` hoặc `installReminders`.
+- Sau thời gian ngừng chạy dài, bổ sung tối đa 100 lần mỗi lượt để giới hạn thời gian thực thi, rồi tiếp tục ở lượt sau.
+
+Nếu đã cài bản trước: thay toàn bộ mã OnTrack cũ bằng `Code.gs` mới (file này đã chứa phần logic dùng chung), chạy lại `setupOnTrack` để thêm cột M:Q, rồi cập nhật deployment Apps Script sang phiên bản mới. Giữ token và URL `/exec` cũ. Có thể chạy `installTaskScheduler` để bật định kỳ trước khi thiết lập OneSignal; nếu đã dùng Web Push, chạy `installReminders`. Không dán trùng cả mã OnTrack cũ và mới trong một dự án.
+
 OnTrack dùng trên Android và Windows qua cùng một địa chỉ HTTPS. Không cần thuê server. Bản đã xuất bản đang là bản dùng thử từ file Excel: các thao tác lưu trên trình duyệt, chưa ghi về Google Sheet và chưa gửi thông báo. Dữ liệu thử của hai thiết bị không tự đồng bộ hoặc nhập lại vào Sheet.
 
 ## 1. Chuẩn bị Sheet và Apps Script
@@ -8,7 +19,7 @@ OnTrack dùng trên Android và Windows qua cùng một địa chỉ HTTPS. Khô
 2. Nên tạo một bản sao dự phòng trước lần thiết lập đầu.
 3. Chọn Extensions (Tiện ích mở rộng) → Apps Script. Dán nội dung `Code.gs` từ gói này vào dự án. Nếu dự án đã có mã khác, thêm file riêng và kiểm tra không trùng các tên hàm của OnTrack.
 4. Trong Project Settings, đặt múi giờ thành Asia/Ho_Chi_Minh. Sheet cũng nên đặt múi giờ GMT+07:00 trong File → Settings.
-5. Chạy hàm `setupOnTrack`, tự xem và cấp quyền cần thiết cho tài khoản sở hữu Sheet. Hàm giữ nguyên A:D, thêm E:L: task_id, created_at, completed_at, updated_at, priority, notes, deadline_has_time, reminder_state. Nếu E:L đã có tiêu đề khác, hàm dừng để bảo toàn dữ liệu.
+5. Chạy hàm `setupOnTrack`, tự xem và cấp quyền cần thiết cho tài khoản sở hữu Sheet. Hàm giữ nguyên A:D, thêm E:Q: task_id, created_at, completed_at, updated_at, priority, notes, deadline_has_time, reminder_state, pending, recurrence, recurrence_cursor, series_id, occurrence_key. Nếu các cột này đã có tiêu đề khác, hàm dừng để bảo toàn dữ liệu.
 6. Trong Project Settings → Script Properties, tìm `ONTRACK_API_TOKEN` do hàm tạo. Giữ riêng mã này, không đăng công khai và không gửi trong chat.
 7. Chọn Deploy → New deployment → Web app: Execute as **Me**, Who has access **Anyone**. Việc này công khai địa chỉ tiếp nhận yêu cầu, KHÔNG công khai Sheet: mã chỉ xử lý thao tác khi token khớp. Nếu tổ chức chặn kiểu triển khai này, cần thay đổi phương án xác thực, không bỏ bước kiểm tra token.
 8. Sao chép URL kết thúc bằng `/exec`. Khi sửa mã Apps Script sau này, cập nhật deployment sang phiên bản mới; URL giữ nguyên.
@@ -76,7 +87,7 @@ Các giá trị này cần được cấu hình trong tài khoản của bạn. 
 
 Mã giao diện React/Vinext, endpoint phía server tại `lib/ontrack-api.ts`, worker tại `worker/index.ts`, xử lý Sheet và scheduler tại `setup/Code.gs`.
 
-Kiểm thử tự động: `node --test tests/core.test.mjs`; kiểm tra TypeScript: `node node_modules/typescript/bin/tsc --noEmit`. Build bằng helper Sites đã dùng để triển khai. Kiểm thử tự động chưa thay thế kiểm tra thật với tài khoản Google, OneSignal và hai thiết bị của bạn.
+Kiểm thử tự động: `node --test tests/core.test.mjs tests/recurrence.test.mjs tests/apps-script.test.mjs`; kiểm tra TypeScript: `node node_modules/typescript/bin/tsc --noEmit`. Khi sửa `lib/task-core.mjs`, chạy `node scripts/sync-apps-script.mjs` để đồng bộ logic vào file Code.gs trước khi phân phối. Build bằng helper Sites đã dùng để triển khai. Kiểm thử tự động chưa thay thế kiểm tra thật với tài khoản Google, OneSignal và hai thiết bị của bạn.
 
 Tài liệu chính thức:
 - https://developers.google.com/apps-script/reference/script/clock-trigger-builder

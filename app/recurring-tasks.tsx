@@ -1,0 +1,8 @@
+"use client";
+import {CalendarDays,Pencil,Repeat2} from 'lucide-react';
+import {nextOccurrence,recurrenceLabel} from '../lib/task-core.mjs';
+import type {Task} from '../lib/types';
+export default function RecurringTasks({tasks,busy,onEdit,onAdd}:{tasks:Task[];busy:boolean;onEdit:(t:Task)=>void;onAdd:()=>void}){
+ const roots=tasks.filter(t=>t.repeat&&!t.seriesId);
+ return <section className="panel"><div className="panel-head"><div><h2>Lịch công việc định kỳ</h2><p>Mỗi lần là một task riêng, giữ được lịch sử hoàn thành.</p></div><Repeat2 size={20} color="#7e9e66"/></div>{!roots.length?<div className="empty">Chưa có lịch định kỳ.<br/><button className="secondary" style={{marginTop:15}} onClick={onAdd}>Tạo lịch đầu tiên</button></div>:roots.map(t=>{const next=nextOccurrence(t.recurrenceCursor?.lastDeadline||t.deadline,t.repeat);return <div className="recurring-row" key={t.id}><div className="recurring-symbol"><Repeat2 size={19}/></div><div className="task-info"><h3>{t.name}</h3><p className="small">{recurrenceLabel(t.repeat)}</p><span className="task-meta"><CalendarDays size={12}/>Deadline kỳ kế tiếp: {next.slice(8,10)}/{next.slice(5,7)}/{next.slice(0,4)} · {next.slice(11,16)}</span></div><button className="secondary" disabled={busy} aria-label={`Sửa lịch: ${t.name}`} onClick={()=>onEdit(t)}><Pencil size={13}/><span>Sửa lịch</span></button></div>;})}<p className="notice" style={{margin:20}}>Pending chỉ tạm dừng một task. Muốn dừng tạo các lần mới, mở lịch gốc và chọn “Không lặp”. Trong bản dùng thử, task mới được bổ sung khi mở hoặc làm mới app; chạy nền mỗi 5 phút cần kết nối Sheet và kích hoạt lịch.</p></section>;
+}

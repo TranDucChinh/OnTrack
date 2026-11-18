@@ -1,0 +1,2 @@
+export type Recurrence = {type:'interval';every:number;unit:'hours'|'days'} | {type:'weekly';weekdays:number[]} | {type:'monthly';day:number};
+export type Task = {id:string;name:string;deadline:string;done:boolean;pending?:boolean;priority:string;notes:string;createdAt:string|null;completedAt:string|null;updatedAt:string|null;version?:string;repeat?:Recurrence|null;recurrenceCursor?:{signature:string;lastDeadline:string};seriesId?:string;occurrenceKey?:string};
