@@ -87,6 +87,8 @@ Các giá trị này cần được cấu hình trong tài khoản của bạn. 
 
 ## Quy tắc dữ liệu và nhắc việc
 
+- OnTrack giữ định dạng sẵn có của cột Date, kể cả cột có kiểu trong Google Sheets Table. App ghi giá trị ngày/giờ và cờ `deadline_has_time`, không đổi number format từng ô khi lưu hoặc tạo task định kỳ. Nếu bản Apps Script cũ báo “You can't set the number format of cells in a typed column”, cập nhật `Code.gs` rồi dùng **Deploy → Manage deployments → Edit → New version → Deploy** để giữ nguyên URL `/exec`. Lỗi cũ có thể xảy ra sau khi dữ liệu đã được ghi, nên bấm lại từng khiến thao tác trông như chỉ thành công ở lần thứ hai.
+
 - Múi giờ Việt Nam. Deadline chỉ có ngày được hiểu là 23:59. Có giờ thì dùng đúng giờ đã chọn.
 - Ba mốc: trước 24 giờ, trước 1 giờ, và khi đến hạn. Mỗi lượt kiểm tra chỉ chọn mốc mới nhất đã tới; không gửi bù cả ba mốc cùng lúc.
 - Task đã quá hạn trước lần kích hoạt lịch đầu tiên không bị gửi dồn. Bản này chưa nhắc quá hạn lặp lại mỗi ngày, chưa có nhắc lại sau hoặc giờ yên lặng.

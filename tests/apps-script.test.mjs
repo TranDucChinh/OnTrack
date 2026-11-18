@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {createHash,randomUUID} from 'node:crypto';
-function fixture(){
+function fixture({typedDates=false}={}){
  const due=new Date(Math.floor((Date.now()-1800000)/60000)*60000);const grid=[['Id','Name','Date','Done'],['=ordinal','Existing',due,false],['=ordinal','Already done',due,true]];const props={};let columns=4,capacity=10;const audit=[];const triggers=[];const auditSheet={getLastRow:()=>audit.length,getMaxRows:()=>100,hideSheet:()=>{},deleteRows:(row,n)=>audit.splice(row-1,n),getRange:(row,col,n=1,m=1)=>({getValues:()=>Array.from({length:n},(_,i)=>[audit[row-1+i]?.[0]??'']),setValue:v=>{audit[row-1]=[v];}})};
- const sheet={getMaxColumns:()=>columns,insertColumnsAfter:(after,n)=>{columns+=n;},getMaxRows:()=>capacity,insertRowsAfter:(after,n)=>{capacity+=n;},getLastRow:()=>grid.length,getDataRange:()=>({getValues:()=>grid.map(r=>Array.from({length:columns},(_,c)=>r[c]??''))}),getRange:(row,col,n=1,m=1)=>({getValues:()=>Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>grid[row-1+i]?.[col-1+j]??'')),setValues:values=>{values.forEach((r,i)=>{grid[row-1+i]??=[];r.forEach((value,j)=>{grid[row-1+i][col-1+j]=value;});});},setValue:value=>{grid[row-1]??=[];grid[row-1][col-1]=value;},setFormula:value=>{grid[row-1]??=[];grid[row-1][col-1]=value;},setNumberFormat:()=>{}})};
+ const sheet={getMaxColumns:()=>columns,insertColumnsAfter:(after,n)=>{columns+=n;},getMaxRows:()=>capacity,insertRowsAfter:(after,n)=>{capacity+=n;},getLastRow:()=>grid.length,getDataRange:()=>({getValues:()=>grid.map(r=>Array.from({length:columns},(_,c)=>r[c]??''))}),getRange:(row,col,n=1,m=1)=>({getValues:()=>Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>grid[row-1+i]?.[col-1+j]??'')),setValues:values=>{values.forEach((r,i)=>{grid[row-1+i]??=[];r.forEach((value,j)=>{grid[row-1+i][col-1+j]=value;});});},setValue:value=>{grid[row-1]??=[];grid[row-1][col-1]=value;},setFormula:value=>{grid[row-1]??=[];grid[row-1][col-1]=value;},setNumberFormat:()=>{if(typedDates&&col===3)throw new Error("You can't set the number format of cells in a typed column.");}})};
  const ctx=vm.createContext({Date,JSON,isFinite,PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k],setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},LockService:{getScriptLock:()=>({waitLock:()=>{},tryLock:()=>true,releaseLock:()=>{},hasLock:()=>true})},SpreadsheetApp:{openById:()=>({getSheetByName:name=>name==='Deadline'?sheet:(audit.length?auditSheet:null),insertSheet:()=>auditSheet}),flush:()=>{}},Utilities:{getUuid:randomUUID,DigestAlgorithm:{SHA_256:'sha256'},computeDigest:(alg,value)=>[...createHash('sha256').update(value).digest()],formatDate:(date,tz,format)=>{const s=new Date(date.getTime()+7*3600000).toISOString();if(format==='HH:mm:ss')return s.slice(11,19);if(format==='yyyy-MM-dd')return s.slice(0,10);return s.slice(0,19)+'+07:00';}},ScriptApp:{getProjectTriggers:()=>triggers,newTrigger:name=>({forSpreadsheet:()=>({onEdit:()=>({create:()=>triggers.push({getHandlerFunction:()=>name})})})}),deleteTrigger:()=>{}}});
  vm.runInContext(fs.readFileSync(new URL('../setup/Code.gs',import.meta.url),'utf8'),ctx);
  return {ctx,grid,props,audit,triggers};
@@ -61,4 +61,27 @@ test('Manual Sheet edits log touched task fields and ignore other tabs and no-op
  ctx.onTrackSheetEdit(event);assert.equal(ctx.otActivity_()[0].action,'sheet_edit');assert.equal(ctx.otActivity_()[0].taskName,'Manual rename');
  ctx.onTrackSheetEdit({...event,oldValue:event.value});assert.equal(ctx.otActivity_().length,1);
  ctx.onTrackSheetEdit({...event,source:{getId:()=>'other'}});assert.equal(ctx.otActivity_().length,1);
+});
+
+test('Typed Date columns save on the first attempt, retain actual deadlines, and log each real change once',()=>{
+ const {ctx}=fixture({typedDates:true});ctx.setupOnTrack();
+ const changes=[{pending:true},{pending:false,done:true},{done:false},{name:'Updated task',deadline:'2026-11-25T14:30:00+07:00'}];
+ for(const [index,patch] of changes.entries()){
+  const previous=ctx.otRows_()[0].task;const next={...previous,...patch};
+  assert.doesNotThrow(()=>ctx.otSave_({task:next,baseVersion:previous.version}));
+  const saved=ctx.otRows_()[0].task;assert.equal(saved.done,next.done);assert.equal(saved.pending,next.done?false:next.pending);assert.equal(saved.deadline,next.deadline);
+  assert.equal(ctx.otActivity_().length,index+1);
+  ctx.otSave_({task:next,baseVersion:previous.version});assert.equal(ctx.otActivity_().length,index+1);
+ }
+ const added={id:'typed-date-new-task',name:'New task',deadline:'2026-11-26T23:59:00+07:00',done:false,pending:false,priority:'normal',notes:'',repeat:null};
+ assert.doesNotThrow(()=>ctx.otSave_({task:added,baseVersion:null}));assert.equal(ctx.otRows_().find(row=>row.task.id===added.id).task.deadline,added.deadline);assert.equal(ctx.otActivity_().length,5);
+});
+
+test('Typed Date columns allow recurring creation and preserve the cursor, activity log and retry deduplication',()=>{
+ const {ctx}=fixture({typedDates:true});ctx.setupOnTrack();const previous=ctx.otRows_()[0].task;
+ ctx.otSave_({task:{...previous,repeat:{type:'interval',every:1,unit:'hours'}},baseVersion:previous.version});
+ assert.doesNotThrow(()=>ctx.otGenerateRecurring_());const tasks=ctx.otRows_();assert.equal(tasks.length,3);
+ const child=tasks.find(row=>row.task.seriesId===previous.id).task;assert.equal(child.deadline.length,25);
+ assert.equal(ctx.otActivity_().filter(entry=>entry.action==='recurring_created').length,1);
+ ctx.otGenerateRecurring_();assert.equal(ctx.otRows_().length,3);assert.equal(ctx.otActivity_().filter(entry=>entry.action==='recurring_created').length,1);
 });

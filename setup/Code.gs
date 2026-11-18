@@ -164,7 +164,7 @@ function otSave_(b){
   var reminders=existing&&existing.task.deadline===t.deadline&&existing.task.done===t.done?(existing.raw[11]||''):'';
   var edited=applyTaskEdit(existing?existing.task:null,t);var cursor=edited.recurrenceCursor?JSON.stringify(edited.recurrenceCursor):'';
   sheet.getRange(row,2,1,16).setValues([[otText_(t.name),otParseDue_(t.deadline)||'',t.done,t.id,existing?existing.raw[5]:now,complete,now,t.priority,otText_(t.notes),t.deadline.length>10,reminders,t.pending,t.repeat?JSON.stringify(t.repeat):'',cursor,existing?(existing.raw[15]||''):'',existing?(existing.raw[16]||''):'']]);
-  sheet.getRange(row,3).setNumberFormat(t.deadline.length>10?'dd/MM/yyyy HH:mm':'dd/MM/yyyy');
+  // Preserve the Date column's format. Typed table columns reject per-cell number formats.
   SpreadsheetApp.flush();
   otLog_(createActivity(existing?existing.task:null,t,{id:Utilities.getUuid(),at:now.toISOString(),source:'app'}));
 }
@@ -179,7 +179,7 @@ function otGenerateRecurring_(){
     var first=sheet.getLastRow()+1;otEnsureRows_(sheet,first+expanded.created.length-1);
     var rows=expanded.created.map(function(t,i){var row=first+i;return ['=IF(B'+row+'="", "", SUBTOTAL(103, $B$2:B'+row+'))',otText_(t.name),otParseDue_(t.deadline),false,t.id,new Date(t.createdAt),'',new Date(t.updatedAt),t.priority,otText_(t.notes),true,'',false,'','',t.seriesId,t.occurrenceKey];});
     sheet.getRange(first,1,rows.length,17).setValues(rows);
-    sheet.getRange(first,3,rows.length,1).setNumberFormat('dd/MM/yyyy HH:mm');
+    // Let the Sheet/table own its column formatting; keep the actual Date values and time flag.
     SpreadsheetApp.flush();
     expanded.created.forEach(function(t){otLog_(createActivity(null,t,{id:'recurring-'+t.id,at:new Date().toISOString(),source:'scheduler'}));});
   }
