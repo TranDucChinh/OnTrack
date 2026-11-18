@@ -2,6 +2,8 @@
 
 # OnTrack — kích hoạt Google Sheet và Web Push
 
+**Đăng nhập Google:** Bản mới yêu cầu cấu hình Google OAuth trước khi dùng Sheet thật. Làm theo [hướng dẫn đăng nhập và triển khai](GOOGLE-AUTH-VI.md). Website Sites cũ còn lớp đăng nhập riêng của hosting; dùng địa chỉ triển khai độc lập cho bản chỉ đăng nhập Google.
+
 ## Danh sách và thống kê hiện tại
 
 Trong tab Công việc, chọn Danh sách hoặc Lịch tháng. Lịch xếp task theo ngày deadline, gồm mọi trạng thái và dùng chung bộ tìm kiếm/lọc. Bấm vào task để xem/sửa; chọn ngày để xem đầy đủ các task hoặc thêm việc vào ngày đó. Có nút tháng trước/tháng sau và trở về tháng hiện tại. Task chưa có deadline được giữ trong Danh sách. Lịch chỉ hiển thị các task đã tồn tại, không tự vẽ các lần định kỳ chưa được tạo.
@@ -55,7 +57,7 @@ Trong **Apps Script → Project Settings → Script Properties**, thêm:
 | `ONESIGNAL_API_KEY` | App API Key; chỉ đặt tại đây |
 | `ONTRACK_APP_URL` | Địa chỉ HTTPS gốc của Site, không có đường dẫn con |
 
-Trong **biến môi trường phía server của Site**, đặt (qua công cụ quản lý Sites; không sửa mã client hoặc hosting.json):
+Trong **biến môi trường phía server của Worker**, đặt trong cấu hình bảo mật của hosting, không sửa mã client hoặc hosting.json:
 
 | Biến | Giá trị |
 |---|---|
@@ -63,13 +65,13 @@ Trong **biến môi trường phía server của Site**, đặt (qua công cụ 
 | `ONTRACK_API_TOKEN` | Token khớp với Script Properties |
 | `ONESIGNAL_APP_ID` | Cùng App ID nói trên |
 
-Các giá trị này cần được cấu hình trong tài khoản của bạn. Nếu chưa có giao diện để nhập biến môi trường, tiếp tục bước này cùng trợ lý qua công cụ Sites; không gửi API Key vào cuộc trò chuyện. Sau khi đổi biến môi trường, triển khai lại phiên bản Site nếu công cụ quản lý yêu cầu. Giữ Site ở chế độ riêng tư.
+Các giá trị này cần được cấu hình trong tài khoản của bạn. Không gửi API Key vào cuộc trò chuyện hoặc repo public. Sau khi đổi biến môi trường, triển khai lại nếu hosting yêu cầu. Giới hạn email Google được vào app bằng `ONTRACK_GOOGLE_EMAIL` như hướng dẫn Google OAuth.
 
 ## 4. Bật lịch 5 phút và đăng ký thiết bị
 
 1. Chạy hàm `installReminders` trong Apps Script. Hàm cài trigger `checkDeadlines` mỗi 5 phút, không tạo trùng trigger của OnTrack.
 2. Mở OnTrack → Cài đặt. Kiểm tra trạng thái **Google Sheet: Đã kết nối** và lịch kiểm tra đã cài.
-3. Trên Android, mở URL bằng Chrome ở chế độ thường, đăng nhập cùng tài khoản có quyền xem Site → Cài đặt → Bật trên thiết bị này → Cho phép thông báo. Có thể thêm app vào màn hình chính.
+3. Trên Android, mở URL bằng Chrome ở chế độ thường, đăng nhập bằng tài khoản Google được phép → Cài đặt → Bật trên thiết bị này → Cho phép thông báo. Có thể thêm app vào màn hình chính.
 4. Làm tương tự trên Windows bằng Chrome hoặc Edge. Cài app từ menu trình duyệt nếu có tùy chọn; dùng bằng tab trình duyệt vẫn được.
 5. Trên từng thiết bị, nhấn **Gửi thông báo thử** và kiểm tra thông báo thật. Phản hồi API chỉ cho biết dịch vụ chấp nhận gửi, chưa chứng minh thiết bị đã hiển thị.
 6. Kiểm tra quyền thông báo của Chrome/Edge trong Android/Windows. Chế độ Không làm phiền, chặn trình duyệt, tắt hẳn tiến trình, tiết kiệm pin và mạng có thể trì hoãn hoặc ngăn thông báo.
@@ -93,7 +95,7 @@ Các giá trị này cần được cấu hình trong tài khoản của bạn. 
 - Việc nhập từ Excel có trạng thái Done nhưng không có thời điểm hoàn thành, nên không suy đoán thống kê đúng hạn của các việc cũ.
 - `Id` là STT theo công thức; `task_id` mới là mã cố định. Khi tự thêm dòng trong Sheet, chạy lại `setupOnTrack` để cấp mã cho task mới. Không sửa cột `task_id` hoặc `reminder_state` bằng tay.
 - Google Sheet vẫn là nguồn dữ liệu chính sau khi kết nối. Mất mạng sẽ báo lỗi; bản này chưa có hàng đợi ghi offline cho chế độ kết nối thật.
-- Site đang riêng tư. Thông báo có nội dung tên task được xử lý qua OneSignal; có thể hiện trên màn hình khóa theo cài đặt thiết bị.
+- Dữ liệu app được bảo vệ bằng đăng nhập Google và chỉ một email được phép truy cập. Thông báo có nội dung tên task được xử lý qua OneSignal; có thể hiện trên màn hình khóa theo cài đặt thiết bị.
 
 ## Mã nguồn và kiểm thử
 

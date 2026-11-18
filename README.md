@@ -4,6 +4,8 @@ OnTrack is a personal task and deadline tracker for desktop and Android browsers
 
 [Hướng dẫn kết nối Google Sheet và Web Push bằng tiếng Việt](setup/README-VI.md)
 
+[Thiết lập đăng nhập Google cho tài khoản cá nhân](setup/GOOGLE-AUTH-VI.md)
+
 ## Features
 
 - Add and edit tasks; mark them completed, reopen them, or put them on Pending.
@@ -12,6 +14,7 @@ OnTrack is a personal task and deadline tracker for desktop and Android browsers
 - View deadlines in a Monday–Sunday week and a monthly calendar.
 - Explore stacked completion charts, priorities, weekly comparisons, and completion timing.
 - Switch between light/dark mode and Vietnamese/English.
+- Sign in with the one approved Google account, with server-verified sessions.
 - Review the latest 20 data changes, including before/after values for app edits.
 - Connect Google Sheets through Google Apps Script and use OneSignal Web Push for deadline reminders.
 
@@ -24,7 +27,9 @@ npm ci
 npm run dev
 ```
 
-Open the loopback URL printed by the server, normally http://127.0.0.1:5173. With no Sheet connection configured, the app uses synthetic demo tasks. Demo tasks, activity, and preferences are saved in the current browser. Demo changes do not sync between devices or write to a Sheet.
+Open the loopback URL printed by the server, normally http://127.0.0.1:5173. With no Sheet or Google auth configuration, the local development server offers a synthetic demo. Demo tasks, activity, and preferences are saved in the current browser. Demo changes do not sync between devices or write to a Sheet. Live Sheet configuration always requires Google sign-in, including during development.
+
+For local OAuth, copy `.dev.vars.example` to the ignored `.dev.vars` file and configure it privately. See the [Google sign-in guide](setup/GOOGLE-AUTH-VI.md) for the exact callback URL and required secrets.
 
 ```sh
 npm test
@@ -32,7 +37,7 @@ npm run typecheck
 npm run build
 ```
 
-The domain and Apps Script fixture tests cover Vietnam-time deadlines, weekly boundaries, Pending, recurrence, reminders, conflict handling, analytics, monthly calendars, preferences, and bounded activity history.
+The domain and Apps Script fixture tests cover Vietnam-time deadlines, weekly boundaries, Pending, recurrence, reminders, conflict handling, analytics, monthly calendars, preferences, and bounded activity history. Auth tests cover Google token verification, owner restrictions, state/PKCE, session tampering, and logout CSRF protection.
 
 ## Connect your own Sheet
 
@@ -51,14 +56,17 @@ The five-minute Apps Script scheduler creates recurring tasks and checks deadlin
 | `app/` | React screens, task editor, calendar, statistics, preferences, and activity panel |
 | `lib/task-core.mjs` | Shared task, recurrence, deadline, and reminder rules |
 | `lib/ontrack-api.ts` | Server-side Google Apps Script proxy |
+| `lib/google-auth.mjs` | Owner-only Google OAuth and signed HttpOnly sessions |
 | `lib/activity-core.mjs` | Change detection and the latest-20 activity limit |
 | `setup/Code.gs` | Sheet storage, edit logging, scheduler, and OneSignal delivery |
 | `worker/index.ts` | Cloudflare Worker entry point |
 | `tests/` | Domain tests and Apps Script fixtures |
 
-This project retains its Vinext/Cloudflare Worker and Sites runtime integration. In production, the API expects authenticated user headers from the hosting platform. Deploying it on another host requires an equivalent authentication layer; do not treat a plain Worker upload as a complete authenticated deployment.
+The app uses Vinext and a Cloudflare Worker. Authentication is handled by Google OAuth in the app, independently of ChatGPT/Sites user headers. Production requires a configured Google Web OAuth Client, a single approved email, a random session secret, and a canonical HTTPS origin. Login requests only `openid email profile`; the existing Apps Script connection handles Sheet access.
 
-The tracked `.openai/hosting.json` contains empty storage bindings and **no existing Site project ID**. Configure your own hosting identity before publishing. The development server uses the starter's local authentication simulation, which is excluded from production builds.
+After configuring your Cloudflare account, use `npm run deploy` to build and publish the generated Worker configuration. Missing auth configuration fails closed; it never exposes the live Sheet. Follow the [deployment and Google setup guide](setup/GOOGLE-AUTH-VI.md) before enabling real data. The previous owner-private Sites URL retains its separate hosting login until it is replaced by a standalone deployment.
+
+The tracked `.openai/hosting.json` contains empty storage bindings and **no existing Site project ID**. Bundled Sites tooling is retained for build compatibility, but its local ChatGPT authentication simulation is disabled.
 
 When changing shared domain code, regenerate the Apps Script bundle and rerun tests:
 
@@ -69,6 +77,6 @@ npm test
 
 ## Repository notes
 
-The eight implementation commits separate project scaffolding, Sheet integration, task workflows, recurrence/Pending, calendar/analytics, theme/language preferences, activity notifications, and setup documentation. Every stage was pushed independently.
+The initial eight implementation commits separate project scaffolding, Sheet integration, task workflows, recurrence/Pending, calendar/analytics, theme/language preferences, activity notifications, and setup documentation. Google authentication is added in later commits. Every stage is pushed independently.
 
 This repository contains no personal task history, production Sheet ID, API tokens, or deployment credentials. Keep real configuration in ignored environment files or hosting/Apps Script secret settings. Bundled third-party components and tooling retain their included license notices.

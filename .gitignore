@@ -46,6 +46,7 @@ yarn-error.log*
 
 # Safe configuration templates
 !.env.example
+!.dev.vars.example
 *.key
 *.p12
 *.pfx

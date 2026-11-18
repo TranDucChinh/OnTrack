@@ -1,2 +1,3 @@
 import OnTrack from "./ontrack";
-export default function Home() { return <OnTrack />; }
+import AuthGate from './auth-gate';
+export default function Home() { return <AuthGate><OnTrack /></AuthGate>; }
