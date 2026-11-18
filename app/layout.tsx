@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./theme.css";
+import "./activity.css";
 import {PreferencesProvider} from './preferences';
 
 export const metadata: Metadata = {

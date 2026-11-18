@@ -109,3 +109,13 @@ Tài liệu chính thức:
 ## Giao diện và ngôn ngữ
 
 Vào **Cài đặt → Giao diện & ngôn ngữ** để bật/tắt chế độ tối và chọn **VI / EN**. Tùy chọn được lưu riêng trên từng trình duyệt, có hiệu lực ngay và được giữ sau khi tải lại trang. Chuyển ngôn ngữ chỉ đổi giao diện; tên task, ghi chú và deadline được giữ nguyên.
+
+## Thông báo hoạt động
+
+Nút chuông ở góc trên bên phải mở **Hoạt động gần đây**, hiển thị tối đa 20 thay đổi mới nhất: thêm/sửa công việc, hoàn thành, mở lại, Pending/tiếp tục và tạo lần định kỳ tự động. Mỗi mục có tên task, thời gian theo giờ Việt Nam và nguồn thay đổi. Các lần sửa từ app có phần **Xem thay đổi** với giá trị trước/sau. Không ghi các lần xem trang, đồng bộ, lưu không thay đổi dữ liệu, đổi giao diện hoặc thao tác bị từ chối.
+
+- Bản thử lưu task và lịch sử cùng nhau trong trình duyệt, giữ dữ liệu từ bản thử trước. Lịch sử bắt đầu từ khi bật tính năng, không dựng lại các thao tác cũ. Không ghi vào Google Sheet.
+- Khi kết nối thật, lịch sử dùng chung được lưu trong tab ẩn **OnTrack_Activity** của chính file Sheet, giữ tối đa 20 mục. App tải lịch sử khi mở chuông, nhấn Làm mới hoặc đồng bộ định kỳ.
+- Cập nhật toàn bộ `Code.gs`, chạy lại `setupOnTrack`, rồi cập nhật deployment Apps Script để dùng tính năng với Sheet thật. Hàm setup tạo tab lịch sử và một installable edit trigger `onTrackSheetEdit`. Chạy lại setup không tạo trùng trigger.
+- Chỉnh sửa ô trực tiếp ở tab Deadline cũng ghi tên task, trường đã đổi và vùng ô. Nhật ký trực tiếp không có giá trị trước/sau cho thao tác dán nhiều ô. Xóa/chèn hàng, thay đổi qua API khác, hoặc công thức tự tính lại không kích hoạt edit trigger; lịch sử này không thay thế Version history của Google Sheets.
+- Thông báo Web Push nhắc deadline vẫn được quản lý trong Cài đặt. Bảng lịch sử không gửi thêm thông báo đẩy cho từng thao tác.

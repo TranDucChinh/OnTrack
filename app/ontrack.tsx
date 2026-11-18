@@ -3,7 +3,9 @@ import {usePreferences,AppearanceSettings} from "./preferences";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Bell, Pause, Play, Repeat2, CalendarDays, Check, CheckCheck, ChevronRight, CircleHelp, Clock3, Cloud, Download, ExternalLink, Leaf, ListTodo, LoaderCircle, Pencil, Plus, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Target, TrendingUp, X } from "lucide-react";
 import { dueTimestamp, taskBucket, weekSummary, expandRecurring, normalizeStoredTask, applyTaskEdit } from "../lib/task-core.mjs";
-import type { Task } from "../lib/types";
+import type { Task, Activity } from "../lib/types";
+import {appendActivity,createActivity,recentActivity} from '../lib/activity-core.mjs';
+import ActivityPanel from './activity-panel';
 import TaskModal from "./task-modal";
 import AnalyticsDashboard from "./analytics-dashboard";
 import { listTasks, taskListGroup } from "../lib/analytics.mjs";
@@ -12,6 +14,8 @@ import MonthCalendar from "./month-calendar";
 type AppState = {
     mode: 'demo' | 'live';
     tasks: Task[];
+    activity?: Activity[];
+    activityReady?: boolean;
     pushAppId: string;
     pushReady: boolean;
     schedulerActive: boolean;
@@ -48,6 +52,7 @@ declare global {
 }
 const nav = [{ key: 'all', name: 'Công việc', Icon: ListTodo }, { key: 'recurring', name: 'Định kỳ', Icon: Repeat2 }, { key: 'stats', name: 'Thống kê', Icon: TrendingUp }, { key: 'settings', name: 'Cài đặt', Icon: Settings2 }] as const;
 const DEMO_KEY = 'ontrack-excel-preview-v1';
+const DEMO_STATE_KEY = 'ontrack-demo-state-v2';
 const titles = { recurring: 'Việc lặp lại, nhịp nhàng hơn.', all: 'Mọi việc, trong tầm tay.', stats: 'Nhìn rõ từng bước tiến.', settings: 'OnTrack theo cách của bạn.' };
 const subtitles = { recurring: 'Đặt lịch một lần, OnTrack tạo các task tiếp theo.', all: 'Sắp xếp công việc, dành chỗ cho điều quan trọng.', stats: 'Tiến độ rõ ràng giúp bạn lên kế hoạch tốt hơn.', settings: 'Kết nối dữ liệu, bật nhắc việc và cài app trên thiết bị.' };
 function formatDue(value: string, locale = 'vi-VN') {
@@ -74,6 +79,9 @@ export default function OnTrack() {
     const [weekOffset, setWeekOffset] = useState(0);
     const [state, setState] = useState<AppState | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [activity,setActivity]=useState<Activity[]>([]);
+    const [activityOpen,setActivityOpen]=useState(false);
+    const [activityLoading,setActivityLoading]=useState(false);
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState('all');
     const [draft, setDraft] = useState<Task | null>(null);
@@ -100,25 +108,33 @@ export default function OnTrack() {
             setState(data);
             if (data.mode === 'demo') {
                 let base = data.tasks;
-                const saved = localStorage.getItem(DEMO_KEY);
+                let history:Activity[]=[];
+                const bundle=localStorage.getItem(DEMO_STATE_KEY);
+                const saved = bundle || localStorage.getItem(DEMO_KEY);
                 if (saved) {
                     try {
-                        const parsed = JSON.parse(saved);
+                        const value = JSON.parse(saved);
+                        const parsed = bundle ? value.tasks : value;
                         if (!Array.isArray(parsed) || !parsed.every((taskItem: Task) => taskItem && typeof taskItem.id === 'string' && typeof taskItem.name === 'string' && typeof taskItem.done === 'boolean'))
                             throw new Error();
                         base = parsed;
+                        history=recentActivity(bundle?value.activity:[]);
                     }
                     catch {
                         say('Bản lưu thử trên thiết bị không hợp lệ. Đã nạp lại dữ liệu Excel.', true);
                     }
                 }
                 const expanded = expandRecurring(base.map(normalizeStoredTask), Date.now());
-                if (expanded.changed)
-                    localStorage.setItem(DEMO_KEY, JSON.stringify(expanded.tasks));
+                for(const task of expanded.created)history=appendActivity(history,createActivity(null,task,{id:'recurring-'+task.id,at:new Date().toISOString(),source:'scheduler'}));
+                if (expanded.changed || !bundle)
+                    localStorage.setItem(DEMO_STATE_KEY, JSON.stringify({tasks:expanded.tasks,activity:history}));
                 setTasks(expanded.tasks as Task[]);
+                setActivity(history);
             }
-            else
+            else{
                 setTasks(data.tasks.map(normalizeStoredTask));
+                setActivity(recentActivity(data.activity));
+            }
             setLoadError('');
         }
         catch (e) {
@@ -256,13 +272,17 @@ export default function OnTrack() {
                 const edited = applyTaskEdit(tasks.find(taskItem => taskItem.id === task.id), task);
                 const next = tasks.some(taskItem => taskItem.id === task.id) ? tasks.map(taskItem => taskItem.id === task.id ? edited : taskItem) : [...tasks, edited];
                 const expanded = expandRecurring(next.map(normalizeStoredTask), Date.now());
-                localStorage.setItem(DEMO_KEY, JSON.stringify(expanded.tasks));
+                let history=appendActivity(activity,createActivity(tasks.find(taskItem=>taskItem.id===task.id),edited,{id:crypto.randomUUID(),at:new Date().toISOString()}));
+                for(const child of expanded.created)history=appendActivity(history,createActivity(null,child,{id:'recurring-'+child.id,at:new Date().toISOString(),source:'scheduler'}));
+                localStorage.setItem(DEMO_STATE_KEY, JSON.stringify({tasks:expanded.tasks,activity:history}));
                 setTasks(expanded.tasks as Task[]);
+                setActivity(history);
                 say('Đã lưu bản dùng thử trên thiết bị này.');
             }
             else {
                 const data = await api({ action: 'save', task, baseVersion: task.version ?? null });
                 setTasks(data.tasks);
+                setActivity(recentActivity(data.activity));
                 say('Đã lưu vào Google Sheet.');
             }
             return true;
@@ -278,6 +298,7 @@ export default function OnTrack() {
     function newTask(recurring = false, day = '') { setDraft({ id: crypto.randomUUID(), name: '', deadline: day ? `${day}T23:59:00+07:00` : '', done: false, pending: false, priority: 'normal', notes: '', createdAt: new Date().toISOString(), completedAt: null, updatedAt: null, repeat: recurring ? { type: 'interval', every: 1, unit: 'days' } : null }); }
     async function toggle(task: Task) { await persist({ ...task, done: !task.done, pending: false, completedAt: task.done ? null : new Date().toISOString(), updatedAt: new Date().toISOString() }); }
     async function togglePending(task: Task) { await persist({ ...task, pending: !task.pending, done: false, completedAt: null, updatedAt: new Date().toISOString() }); }
+    async function loadActivity(){setActivityLoading(true);try{await refresh(true);}finally{setActivityLoading(false);}}
     async function install() {
         if (installEvent) {
             await installEvent.prompt();
@@ -300,7 +321,7 @@ export default function OnTrack() {
     const changeView = (v: View) => { setView(v); setFilter('all'); setQuery(''); };
     const taskFilters = (<div className="tools"><label className="search"><Search size={15}/><input aria-label={t("Tìm công việc")} placeholder={t("Tìm công việc của bạn…")} value={query} onChange={e => setQuery(e.target.value)}/></label><select className="filter" aria-label={t("Lọc công việc")} value={filter} onChange={e => setFilter(e.target.value)}><option value="all">{t("Tất cả công việc")}</option><option value="high">{t("Ưu tiên cao")}</option><option value="overdue">{t("Đang quá hạn")}</option><option value="active">{t("Đang làm")}</option><option value="today">{t("Hôm nay")}</option><option value="upcoming">{t("Sắp tới")}</option><option value="pending">Pending</option>{view === 'all' && <option value="done">{t("Đã hoàn thành")}</option>}</select></div>);
     return <div className="app"><aside className="sidebar"><Brand /><div className="brand-sub">Stay on task. Stay on time.</div><div className="nav-label">{t("Không gian của bạn")}</div><nav aria-label={t("Điều hướng")}>{nav.map(({ key, name, Icon }) => <button key={key} className={`nav-item ${view === key ? 'active' : ''}`} onClick={() => changeView(key)}><Icon size={17}/>{t(name)}{key === 'all' && <span className="nav-count">{activeCount}</span>}</button>)}</nav><div className="sidebar-bottom"><div className="quiet-note"><Leaf size={22}/><strong>{t("Từng việc nhỏ, tiến xa hơn.")}</strong>{t("Một danh sách gọn gàng. Một ngày chủ động hơn.")}</div><div className="profile"><span className="avatar">OT</span><div><strong style={{ fontSize: 12, fontWeight: 600 }}>{t("Không gian cá nhân")}</strong><div className="small" style={{ fontSize: 10 }}>{t("Chỉ dành cho bạn")}</div></div><ShieldCheck size={15} style={{ marginLeft: 'auto', color: '#8da07e' }}/></div></div></aside>
-    <main className="main"><header className="topbar"><Brand mobile/><div className="breadcrumb">{t("Không gian cá nhân")}<ChevronRight size={13}/><strong>{t(nav.find(n => n.key === view)?.name)}</strong></div><div className="top-actions"><span className="top-date">{dateLabel}</span><button className="icon-button" title={t("Đồng bộ dữ liệu")} aria-label={t("Đồng bộ dữ liệu")} disabled={loading || busy} onClick={() => refresh()}><RefreshCw size={15}/></button><button className="icon-button" aria-label={t("Cài đặt thông báo")} onClick={() => changeView('settings')}><Bell size={16}/></button><span className="avatar">OT</span></div></header>
+    <main className="main"><header className="topbar"><Brand mobile/><div className="breadcrumb">{t("Không gian cá nhân")}<ChevronRight size={13}/><strong>{t(nav.find(n => n.key === view)?.name)}</strong></div><div className="top-actions"><span className="top-date">{dateLabel}</span><button className="icon-button" title={t("Đồng bộ dữ liệu")} aria-label={t("Đồng bộ dữ liệu")} disabled={loading || busy} onClick={() => refresh()}><RefreshCw size={15}/></button><button className="icon-button activity-bell" title={t("Xem thông báo hoạt động")} aria-label={t("Xem thông báo hoạt động")} aria-haspopup="dialog" aria-expanded={activityOpen} disabled={loading||busy} onClick={()=>{setActivityOpen(true);void loadActivity();}}><Bell size={16}/>{activity.length>0&&<span className="activity-count" aria-hidden="true">{activity.length}</span>}</button><span className="avatar">OT</span></div></header>
       <div className="content"><div className="intro"><div><div className="eyebrow">YOUR DAY, ON TRACK</div><h1>{t(titles[view])}</h1><p className="subtitle">{t(subtitles[view])}</p></div><button className="primary" aria-label={t("Thêm công việc")} onClick={() => newTask(view === 'recurring')} disabled={loading || !state || busy}><Plus size={17}/><span>{t("Thêm công việc")}</span></button></div>
       {state && <div className={`connection ${state.mode === 'live' ? 'live' : ''}`}><Cloud size={15}/><span>{state.mode === 'demo' ? t("Bản dùng thử từ Excel · Thay đổi chỉ lưu trên thiết bị này.") : t("Đã kết nối Google Sheet · Tự động làm mới mỗi 5 phút.")}</span><button onClick={() => changeView('settings')}>{state.mode === 'demo' ? t("Kết nối Sheet") : t("Chi tiết")}</button></div>}
       {loadError && <div className="connection" role="alert"><CircleHelp size={16}/><span>{t(loadError)}{" " + t("Dữ liệu hiện có chưa được làm mới.")}</span><button onClick={() => refresh()}>{t("Thử lại")}</button></div>}
@@ -335,6 +356,6 @@ export default function OnTrack() {
             }} busy={busy} onClose={() => setDraft(null)} onSave={async (taskItem) => {
                 if (await persist(taskItem))
                     setDraft(null);
-            }}/>}{toast && <div className={`toast ${toast.error ? 'error-toast' : ''}`} role={toast.error ? 'alert' : 'status'}>{t(toast.text)}</div>}
+            }}/>}{activityOpen&&<ActivityPanel entries={activity} mode={state?.mode||'demo'} loading={activityLoading} error={loadError} ready={state?.mode==='demo'||Boolean(state?.activityReady)} onRefresh={()=>void loadActivity()} onClose={()=>setActivityOpen(false)}/>} {toast && <div className={`toast ${toast.error ? 'error-toast' : ''}`} role={toast.error ? 'alert' : 'status'}>{t(toast.text)}</div>}
   </div>;
 }

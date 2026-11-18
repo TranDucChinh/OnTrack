@@ -7,7 +7,7 @@ export async function ontrackApi(request:Request,env:RuntimeEnv,dev=false){
   const live=Boolean(env.ONTRACK_SCRIPT_URL&&env.ONTRACK_API_TOKEN);
   if(!live&&(env.ONTRACK_SCRIPT_URL||env.ONTRACK_API_TOKEN))return json({error:'Cấu hình kết nối Sheet chưa đầy đủ. Cần cả địa chỉ Apps Script và mã kết nối.'},503);
   if(request.method==='GET'){
-    if(!live)return json({mode:'demo',tasks:seed,pushAppId:'',pushReady:false,schedulerActive:false,lastCheck:null,lastCheckError:false,deviceCount:0});
+    if(!live)return json({mode:'demo',tasks:seed,activity:[],activityReady:true,pushAppId:'',pushReady:false,schedulerActive:false,lastCheck:null,lastCheckError:false,deviceCount:0});
     return remote({action:'list'},env);
   }
   if(request.method!=='POST')return json({error:'Phương thức không được hỗ trợ.'},405);
@@ -33,6 +33,6 @@ async function remote(body:object,env:RuntimeEnv){
     const result=await response.json() as any;
     if(!result.ok)return json({error:result.error||'Không thể cập nhật Sheet.'},result.code==='conflict'?409:502);
     if(result.tasks&&result.schemaVersion!==2)return json({error:'Hãy cập nhật mã Apps Script OnTrack mới và chạy lại setupOnTrack để dùng Pending và công việc định kỳ.'},503);
-    return json({...result,mode:'live',pushReady:Boolean(result.pushReady&&env.ONESIGNAL_APP_ID),pushAppId:env.ONESIGNAL_APP_ID||''});
+    return json({...result,activityReady:Array.isArray(result.activity),mode:'live',pushReady:Boolean(result.pushReady&&env.ONESIGNAL_APP_ID),pushAppId:env.ONESIGNAL_APP_ID||''});
   }catch{return json({error:'Kết nối Sheet bị gián đoạn. Dữ liệu chưa được xác nhận lưu; hãy đồng bộ lại trước khi thử.'},502);}
 }

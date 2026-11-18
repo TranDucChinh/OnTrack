@@ -2,6 +2,7 @@
 var OT_TZ = 'Asia/Ho_Chi_Minh';
 var OT_SHEET_ID = 'YOUR_SPREADSHEET_ID';
 var OT_TAB = 'Deadline';
+var OT_ACTIVITY_TAB = 'OnTrack_Activity';
 var OT_EXTRA = ['task_id','created_at','completed_at','updated_at','priority','notes','deadline_has_time','reminder_state','pending','recurrence','recurrence_cursor','series_id','occurrence_key'];
 
 function setupOnTrack() {
@@ -25,6 +26,10 @@ function setupOnTrack() {
       ids[r[4]]=true;
       // Existing completed tasks keep unknown created/completed times.
     }
+    otActivitySheet_();
+    var editTriggers=ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==='onTrackSheetEdit';});
+    if(!editTriggers.length)ScriptApp.newTrigger('onTrackSheetEdit').forSpreadsheet(OT_SHEET_ID).onEdit().create();
+    else editTriggers.slice(1).forEach(function(t){ScriptApp.deleteTrigger(t);});
     SpreadsheetApp.flush();
     return 'Đã chuẩn bị dữ liệu. Mã kết nối nằm trong Project Settings → Script Properties → ONTRACK_API_TOKEN. Chưa bật lịch nhắc.';
   } finally {lock.releaseLock();}
@@ -76,6 +81,36 @@ function doPost(e){
 function doGet(){return otJson_({ok:false,error:'OnTrack chỉ nhận yêu cầu đã xác thực.'});}
 function otJson_(v){return ContentService.createTextOutput(JSON.stringify(v)).setMimeType(ContentService.MimeType.JSON);}
 function otSheet_(){var s=SpreadsheetApp.openById(OT_SHEET_ID).getSheetByName(OT_TAB);if(!s)throw new Error('Không tìm thấy tab Deadline.');return s;}
+function otActivitySheet_(){
+  var book=SpreadsheetApp.openById(OT_SHEET_ID);var sheet=book.getSheetByName(OT_ACTIVITY_TAB);
+  if(!sheet){sheet=book.insertSheet(OT_ACTIVITY_TAB);sheet.getRange(1,1).setValue('ontrack_activity_v1');sheet.hideSheet();}
+  if(sheet.getRange(1,1).getValues()[0][0]!=='ontrack_activity_v1')throw new Error('Tab OnTrack_Activity đã có dữ liệu khác. Hãy đổi tên tab đó trước khi thiết lập.');
+  return sheet;
+}
+function otActivity_(){
+  var sheet=otActivitySheet_(),last=sheet.getLastRow();if(last<2)return [];
+  return recentActivity(sheet.getRange(Math.max(2,last-19),1,Math.min(20,last-1),1).getValues().map(function(r){try{return JSON.parse(r[0]);}catch(ignore){return null;}}).reverse());
+}
+function otLog_(entry){
+  if(!entry)return;var sheet=otActivitySheet_();var row=sheet.getLastRow()+1;otEnsureRows_(sheet,row);
+  sheet.getRange(row,1).setValue(JSON.stringify(entry));
+  var excess=sheet.getLastRow()-21;if(excess>0)sheet.deleteRows(2,excess);
+  SpreadsheetApp.flush();
+}
+// App/script writes do not fire this trigger and are logged at their write sites.
+function onTrackSheetEdit(e){
+  if(!e||!e.range||!e.source||e.source.getId()!==OT_SHEET_ID||e.range.getSheet().getName()!==OT_TAB)return;
+  var first=Math.max(2,e.range.getRow()),last=e.range.getLastRow();
+  var columns={2:'name',3:'deadline',4:'status',9:'priority',10:'notes',13:'status',14:'repeat'};
+  var fields=[];for(var col=e.range.getColumn();col<=e.range.getLastColumn();col++){if(columns[col]&&fields.indexOf(columns[col])<0)fields.push(columns[col]);}
+  if(!fields.length||first>last)return;
+  if(e.range.getNumRows()===1&&e.range.getNumColumns()===1&&String(e.oldValue??'')===String(e.value??''))return;
+  var lock=LockService.getScriptLock();lock.waitLock(20000);
+  try{
+    var sheet=otSheet_();var values=sheet.getRange(Math.max(first,last-19),1,Math.min(20,last-first+1),17).getValues();
+    values.forEach(function(r){if(!r[4]&&!String(r[1]||'').trim())return;otLog_({id:Utilities.getUuid(),at:new Date().toISOString(),source:'sheet',action:'sheet_edit',taskId:String(r[4]||''),taskName:String(r[1]||'('+e.range.getA1Notation()+')'),deadline:'',range:e.range.getA1Notation(),changes:fields.map(function(field){return {field:field,before:null,after:null};})});});
+  }finally{lock.releaseLock();}
+}
 function otRows_(){
   var rows=otSheet_().getDataRange().getValues();
   if(rows[0].slice(4,4+OT_EXTRA.length).join('|')!==OT_EXTRA.join('|'))throw new Error('Hãy chạy setupOnTrack trước.');
@@ -103,7 +138,7 @@ function otTask_(r){
 function otHash_(s){return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,s).map(function(n){return ('0'+((n+256)%256).toString(16)).slice(-2);}).join('');}
 function otState_(){
   var p=PropertiesService.getScriptProperties();
-  return {ok:true,schemaVersion:2,tasks:otRows_().map(function(o){return o.task;}),pushReady:!!(p.getProperty('ONESIGNAL_APP_ID')&&p.getProperty('ONESIGNAL_API_KEY')),schedulerActive:ScriptApp.getProjectTriggers().some(function(t){return t.getHandlerFunction()==='checkDeadlines';}),lastCheck:p.getProperty('LAST_CHECK'),lastCheckError:!!p.getProperty('LAST_CHECK_ERROR'),deviceCount:JSON.parse(p.getProperty('PUSH_DEVICES')||'[]').length};
+  return {ok:true,schemaVersion:2,activityReady:true,activity:otActivity_(),tasks:otRows_().map(function(o){return o.task;}),pushReady:!!(p.getProperty('ONESIGNAL_APP_ID')&&p.getProperty('ONESIGNAL_API_KEY')),schedulerActive:ScriptApp.getProjectTriggers().some(function(t){return t.getHandlerFunction()==='checkDeadlines';}),lastCheck:p.getProperty('LAST_CHECK'),lastCheckError:!!p.getProperty('LAST_CHECK_ERROR'),deviceCount:JSON.parse(p.getProperty('PUSH_DEVICES')||'[]').length};
 }
 function otParseDue_(value){
   if(!value)return null;
@@ -121,6 +156,8 @@ function otSave_(b){
   if(existing&&existing.task.seriesId&&t.repeat)throw new Error('Hãy sửa lịch ở task gốc.');
   if(existing&&existing.task.version!==b.baseVersion){if(otSame_(existing.task,t))return;var err=new Error('Task đã thay đổi ở nơi khác. Đồng bộ lại rồi mở task để chỉnh sửa.');err.otCode='conflict';throw err;}
   if(!existing&&b.baseVersion){var gone=new Error('Task đã bị xóa khỏi Sheet. Đồng bộ lại trước khi lưu.');gone.otCode='conflict';throw gone;}
+  if(existing&&otSame_(existing.task,t))return;
+  otActivitySheet_();
   var sheet=otSheet_();var row=existing?existing.row:sheet.getLastRow()+1;var now=new Date();otEnsureRows_(sheet,row);
   if(!existing)sheet.getRange(row,1).setFormula('=IF(B'+row+'="", "", SUBTOTAL(103, $B$2:B'+row+'))');
   var complete=t.done?(existing&&existing.task.done?existing.raw[6]:now):'';
@@ -129,11 +166,13 @@ function otSave_(b){
   sheet.getRange(row,2,1,16).setValues([[otText_(t.name),otParseDue_(t.deadline)||'',t.done,t.id,existing?existing.raw[5]:now,complete,now,t.priority,otText_(t.notes),t.deadline.length>10,reminders,t.pending,t.repeat?JSON.stringify(t.repeat):'',cursor,existing?(existing.raw[15]||''):'',existing?(existing.raw[16]||''):'']]);
   sheet.getRange(row,3).setNumberFormat(t.deadline.length>10?'dd/MM/yyyy HH:mm':'dd/MM/yyyy');
   SpreadsheetApp.flush();
+  otLog_(createActivity(existing?existing.task:null,t,{id:Utilities.getUuid(),at:now.toISOString(),source:'app'}));
 }
 function otEnsureRows_(sheet,last){var size=sheet.getMaxRows();if(last>size)sheet.insertRowsAfter(size,last-size);}
 function otGenerateRecurring_(){
   var records=otRows_();var expanded=expandRecurring(records.map(function(o){return o.task;}),Date.now(),100);
   if(!expanded.changed)return;
+  otActivitySheet_();
   var sheet=otSheet_();
   // Append occurrences first. Stable occurrence keys make retries safe if the cursor write is interrupted.
   if(expanded.created.length){
@@ -142,6 +181,7 @@ function otGenerateRecurring_(){
     sheet.getRange(first,1,rows.length,17).setValues(rows);
     sheet.getRange(first,3,rows.length,1).setNumberFormat('dd/MM/yyyy HH:mm');
     SpreadsheetApp.flush();
+    expanded.created.forEach(function(t){otLog_(createActivity(null,t,{id:'recurring-'+t.id,at:new Date().toISOString(),source:'scheduler'}));});
   }
   var byId={};expanded.tasks.forEach(function(t){byId[t.id]=t;});
   records.forEach(function(o){var t=byId[o.task.id];if(JSON.stringify(t.recurrenceCursor)!==JSON.stringify(o.task.recurrenceCursor))sheet.getRange(o.row,15).setValue(t.recurrenceCursor?JSON.stringify(t.recurrenceCursor):'');});
@@ -196,7 +236,7 @@ function otSend_(devices,title,message,url,key){
   return result.id;
 }
 
-// BEGIN SHARED ONTRACK DOMAIN — generated from lib/task-core.mjs
+// BEGIN SHARED ONTRACK DOMAIN — generated from lib/task-core.mjs and lib/activity-core.mjs
 function dueTimestamp(deadline) {
   if (!deadline) return Infinity;
   return Date.parse(deadline.length === 10 ? `${deadline}T23:59:00+07:00` : deadline);
@@ -331,5 +371,22 @@ function applyTaskEdit(previous,input) {
   }else next.recurrenceCursor=null;
   return next;
 }
+
+const ACTIVITY_LIMIT=20;
+function activityValues(task){return {name:task.name||'',deadline:task.deadline||'',status:task.done?'done':task.pending?'pending':'active',priority:task.priority||'normal',notes:task.notes||'',repeat:task.repeat||null};}
+function createActivity(previous,next,{id='',at='',source='app'}={}){
+ const after=activityValues(next),before=previous?activityValues(previous):null;
+ const changes=before?Object.keys(after).filter(field=>JSON.stringify(before[field])!==JSON.stringify(after[field])).map(field=>({field,before:before[field],after:after[field]})):[];
+ if(before&&!changes.length)return null;
+ let action=previous?'updated':'created';
+ if(source==='scheduler')action='recurring_created';
+ else if(previous&&changes.some(c=>c.field==='status'))action=after.status==='done'?'completed':after.status==='pending'?'paused':before.status==='pending'?'resumed':'reopened';
+ return {id,at,source,action,taskId:next.id,taskName:next.name,deadline:next.deadline||'',changes};
+}
+function recentActivity(entries){
+ if(!Array.isArray(entries))return [];
+ return entries.filter(e=>e&&typeof e.id==='string'&&typeof e.at==='string'&&Number.isFinite(Date.parse(e.at))&&typeof e.taskName==='string'&&Array.isArray(e.changes)).slice().sort((a,b)=>b.at.localeCompare(a.at)).slice(0,ACTIVITY_LIMIT);
+}
+function appendActivity(entries,entry){return entry?recentActivity([entry,...entries.filter(e=>e.id!==entry.id)]):recentActivity(entries);}
 
 // END SHARED ONTRACK DOMAIN
